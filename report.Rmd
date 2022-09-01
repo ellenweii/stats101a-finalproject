@@ -1,0 +1,130 @@
+---
+title: "report"
+author: "Ellen Wei"
+date: "March 7, 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+```
+
+## Load data
+```{r}
+data <- read.csv("lol_games.csv")
+head(data)
+dt <- data[, -c(1,2) ]
+model <- lm(goldDiff ~., data = dt)
+
+summary(model)
+
+#check distribution
+hist(dt$goldDiff, breaks = 20, main = "Distribution of Gold Difference",
+     xlab = "Gold Difference")
+```
+
+```{r}
+#sum(dt["destroyedTopBaseTurret"])
+#sum(dt["destroyedMidBaseTurret"])
+#sum(dt["lostTopBaseTurret"])
+#sum(dt["lostMidBaseTurret"])
+
+dt_adj <- dt %>%
+  select(-c("destroyedTopBaseTurret", "destroyedMidBaseTurret", 
+                  "lostTopBaseTurret", "lostMidBaseTurret"))
+
+model_dt_adj <- lm(goldDiff ~., data = dt_adj)
+summary(model_dt_adj)
+
+```
+
+
+```{r}
+
+dt_adj <- dt %>%
+  select(-c("destroyedTopBaseTurret", "destroyedMidBaseTurret", 
+                  "lostTopBaseTurret", "lostMidBaseTurret",
+            "wardsPlaced", "lostBotInhibitor",
+            "lostEarthDrake", "killedAirDrake", "lostWaterDrake",
+            "killedEarthDrake", "killedWaterDrake", "killedFireDrake",
+            "isFirstBlood", "lostAirDrake"))
+
+model_dt_adj <- lm(goldDiff ~., data = dt_adj)
+summary(model_dt_adj) #multiple r^2: 0.9623
+```
+```{r}
+# multicollinearty
+dt_adj <- dt %>%
+  select(-c("destroyedTopBaseTurret", "destroyedMidBaseTurret", 
+                  "lostTopBaseTurret", "lostMidBaseTurret",
+            "wardsPlaced", "lostBotInhibitor",
+            "lostEarthDrake", "killedAirDrake", "lostWaterDrake",
+            "killedEarthDrake", "killedWaterDrake", "killedFireDrake",
+            "isFirstBlood", "lostAirDrake",
+            "expDiff", "champLevelDiff", 
+            "assists", "lostMidInhibitor", "destroyedTopInhibitor", 
+            "killedRiftHerald"))
+#champLevelDiff prompted removal of assists, lostMidInhibitor, destroyedTopInhibitor, multiple r^2: 0.93
+
+#kills prompted removal of lostRiftHerald, killedRiftHerald, multiple r^2: 0.86
+
+#wardsDestroyed removed after ANOVA
+
+model_dt_adj <- lm(goldDiff ~., data = dt_adj)
+summary(model_dt_adj_2)
+
+#expDiff
+
+dt_adj_mc <- dt_adj_2 %>%
+  select(-c("goldDiff"))
+
+model_mc <- lm(kills ~., data = dt_adj_mc)
+summary(model_mc)
+
+
+plot(model_dt_adj_2)
+```
+
+```{r}
+library(alr4)
+invResPlot(model_dt_adj)
+
+powerTransform(model_dt_adj)
+
+plot(model_dt_adj$fitted.values ~ dt_adj$goldDiff, 
+     main = "Fitted Values vs. Observed Values of Gold Difference",
+     xlab = "Observed Values", ylab = "Fitted Values")
+abline(a = 0, b = 1, col = "blue")
+
+```
+
+```{r}
+#residual analysis
+
+anova(model_dt_adj)
+
+plot(model_dt_adj)
+
+summary(model_dt_adj)
+
+#final model
+cat(names(dt_adj))
+
+```
+
+```{r}
+library(leaps)
+best_subset <- regsubsets(goldDiff ~., data = dt_adj, nbest = 1, nvmax = 10, intercept = TRUE, method = "exhaustive", really.big = FALSE)
+sumBS <- summary(best_subset)
+best_model <- sumBS$which[which.min(sumBS$bic),]
+print(best_model)
+
+for (i in 1:length(best_model)){
+  if (best_model[i]){
+    print(best_model[i])
+  }
+}
+```
+
